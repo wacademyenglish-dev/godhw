@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WolfStation Assignment: The Spartan Trials</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#030303',
+                        panel: '#0a0a0a',
+                        gowGold: '#d4af37',
+                        spartanRed: '#c0392b',
+                        frostBlue: '#3498db'
+                    },
+                    fontFamily: {
+                        gaming: ['Cinzel', 'serif'],
+                        main: ['Rajdhani', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030303;
+            color: #e0e0e0;
+            font-family: 'Rajdhani', sans-serif;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #030303 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        .glass-panel {
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+        }
+
+        .option-btn {
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #333;
+            color: #ccc;
+            padding: 1rem;
+            border-radius: 4px;
+            width: 100%;
+            text-align: left;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-btn:hover {
+            border-color: #d4af37;
+            background: rgba(212, 175, 55, 0.05);
+            color: #fff;
+        }
+
+        .option-btn.correct {
+            border-color: #2ecc71;
+            background: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+        }
+
+        .option-btn.wrong {
+            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+
+        .game-btn {
+            background: linear-gradient(to bottom, #1a1a1a, #050505);
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            padding: 1rem 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .ash-particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatAsh linear infinite;
+        }
+
+        @keyframes floatAsh {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-10vh) translateX(50px); opacity: 0; }
+        }
+
+        .trial-card { display: none; }
+        .trial-card.active { display: block; animation: slideIn 0.4s ease-out; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        #progress-bar { transition: width 0.4s ease; }
+    </style>
+</head>
+<body class="p-4 md:p-12 relative">
+
+    <div id="ash-container" class="fixed inset-0 pointer-events-none"></div>
+
+    <div class="max-w-3xl mx-auto relative z-10 pb-20">
+        <!-- Cabeçalho de Progresso -->
+        <header class="text-center mb-8">
+            <h3 class="text-gowGold font-gaming tracking-[0.3em] text-sm mb-2">Spartan Trials</h3>
+            <div class="w-full bg-gray-900 h-2 rounded-full overflow-hidden border border-gray-800">
+                <div id="progress-bar" class="bg-gowGold h-full w-[0%]"></div>
+            </div>
+            <p id="trial-counter" class="text-gray-500 font-gaming mt-2 text-xs">Trial 1 of 15</p>
+        </header>
+
+        <!-- Container de Exercícios -->
+        <div id="quiz-container">
+            <!-- Os exercícios serão injetados aqui pelo JS -->
+        </div>
+
+        <!-- Tela Final (Oculta) -->
+        <div id="result-screen" class="hidden text-center fade-in">
+            <div class="glass-panel p-12">
+                <i class="fas fa-trophy text-7xl text-gowGold mb-6 drop-shadow-md"></i>
+                <h1 class="text-5xl font-gaming text-white mb-4">MISSION COMPLETE</h1>
+                <p class="text-2xl text-gray-400 mb-8">You have proven your discipline.</p>
+                <div class="text-4xl font-gaming text-gowGold mb-10">
+                    SCORE: <span id="final-score">0</span> / 15
+                </div>
+                <button onclick="location.reload()" class="game-btn">RETRY TRIAL</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const quizData = [
+            { q: "Which modal is used for a strict, internal rule?", options: ["Should", "Must", "Might"], correct: 1 },
+            { q: "Choose the correct imperative command:", options: ["You staying calm!", "Staying calm!", "Stay calm!"], correct: 2 },
+            { q: "A blade is only dangerous when the warrior who ______ it has discipline.", options: ["wields", "holds", "needs"], correct: 0 },
+            { q: "Which sentence shows advice, not a strict command?", options: ["You must be better.", "You should practice.", "Do it now."], correct: 1 },
+            { q: "Complete the negative imperative: '_____ make the same mistake.'", options: ["No", "Don't", "Not"], correct: 1 },
+            { q: "Kratos says: 'We are more than men'. What is the word for his duty?", options: ["Responsibility", "Gift", "Game"], correct: 0 },
+            { q: "What does 'Tempered' mean in the lesson?", options: ["Broken by heat", "Balanced/Moderated", "Very angry"], correct: 1 },
+            { q: "Select the correct structure for a command:", options: ["Base verb (no subject)", "Subject + base verb", "Base verb + ing"], correct: 0 },
+            { q: "'The boy's true ______ fights within him.'", options: ["history", "nature", "weapon"], correct: 1 },
+            { q: "If you say 'You MUST never forget', you are expressing...", options: ["A possibility", "A strong obligation", "A suggestion"], correct: 1 },
+            { q: "Which is more forceful?", options: ["You should listen.", "Listen to me!", "You might listen."], correct: 1 },
+            { q: "The power of a weapon comes from...", options: ["The metal", "The discipline of the user", "The size of the blade"], correct: 1 },
+            { q: "Kratos wants the boy to be ______ than him.", options: ["stronger", "better", "faster"], correct: 1 },
+            { q: "When giving directions, we use...", options: ["Modals", "Imperatives", "Past Tense"], correct: 1 },
+            { q: "'Have ____ in him', says the goddess.", options: ["faith", "luck", "mercy"], correct: 0 }
+        ];
+
+        let currentTrial = 0;
+        let score = 0;
+
+        function renderTrial() {
+            const container = document.getElementById('quiz-container');
+            const data = quizData[currentTrial];
+            
+            // Atualiza progresso
+            document.getElementById('progress-bar').style.width = ((currentTrial / quizData.length) * 100) + '%';
+            document.getElementById('trial-counter').innerText = `Trial ${currentTrial + 1} of ${quizData.length}`;
+
+            container.innerHTML = `
+                <div class="trial-card active">
+                    <div class="glass-panel p-8 mb-6 border-t-2 border-t-gowGold">
+                        <h2 class="text-2xl md:text-3xl text-white font-light leading-relaxed mb-8">${data.q}</h2>
+                        <div class="options-list">
+                            ${data.options.map((opt, i) => `
+                                <button class="option-btn" onclick="checkAnswer(${i})">
+                                    <span class="text-gowGold font-gaming text-sm">${String.fromCharCode(65 + i)}.</span>
+                                    <span>${opt}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function checkAnswer(index) {
+            const data = quizData[currentTrial];
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            // Desabilita cliques extras
+            buttons.forEach(btn => btn.onclick = null);
+
+            if (index === data.correct) {
+                buttons[index].classList.add('correct');
+                score++;
+            } else {
+                buttons[index].classList.add('wrong');
+                buttons[data.correct].classList.add('correct');
+            }
+
+            setTimeout(() => {
+                currentTrial++;
+                if (currentTrial < quizData.length) {
+                    renderTrial();
+                } else {
+                    showFinalResult();
+                }
+            }, 1200);
+        }
+
+        function showFinalResult() {
+            document.getElementById('quiz-container').innerHTML = '';
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+        }
+
+        // Efeito de cinzas
+        function createAsh() {
+            const container = document.getElementById('ash-container');
+            for(let i = 0; i < 20; i++) {
+                const p = document.createElement('div');
+                p.className = 'ash-particle';
+                const size = Math.random() * 3 + 1;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.animationDuration = (Math.random() * 8 + 4) + 's';
+                p.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(p);
+            }
+        }
+
+        window.onload = () => {
+            renderTrial();
+            createAsh();
+        };
+    </script>
+</body>
+</html>
